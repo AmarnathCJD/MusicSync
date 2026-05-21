@@ -1,0 +1,6 @@
+android/build
+android/.dart_tool
+android/android/.gradle
+android/android/app/build
+MusicSync-go/build
+MusicSync-go/frontend/node_modules
