@@ -11,7 +11,7 @@
     <application
         android:label="MusicSync"
         android:name="${applicationName}"
-        android:icon="@android:drawable/sym_def_app_icon"
+        android:icon="@mipmap/ic_launcher"
         android:allowAudioPlaybackCapture="true"
         android:usesCleartextTraffic="true">
 
