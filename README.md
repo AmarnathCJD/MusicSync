@@ -17,12 +17,7 @@ over **DRGB UDP**. The built-in WLED effects are bypassed entirely — what
 you see on the strip is whatever the app rendered locally that millisecond,
 driven by either your speakers or your screen.
 
-Two implementations, same protocol, same WLED on the other end.
-
-| | Stack | What it does |
-|---|---|---|
-| <img src="assets/icon-android.png" width="34" align="left"/> **[`android/`](android/)** | Flutter + Kotlin | Phone control, system-audio + mic-input FFT, 26 hand-written animated presets streamed over UDP |
-| <img src="assets/icon-windows.png" width="34" align="left"/> **[`desktop/`](desktop/)** | Wails (Go + Svelte) | Single-binary Windows app: speaker-loopback audio sync **and** screen-capture display sync (ambilight) |
+Two implementations, same protocol, same WLED on the other end (Android + Windows)
 
 ## Screenshots
 
