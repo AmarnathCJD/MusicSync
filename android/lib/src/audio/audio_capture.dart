@@ -45,6 +45,34 @@ class AudioCapture {
     if (_running) return true;
     final ok = await _method.invokeMethod<bool>('requestCapture') ?? false;
     if (!ok) return false;
+    _attachEvents();
+    _running = true;
+    return true;
+  }
+
+  /// Start mic-input capture. Mic permission is requested lazily here — never
+  /// at app launch — so the user only sees the prompt when they tap "Start
+  /// mic sync."
+  Future<bool> startMic() async {
+    if (_running) return true;
+    final ok = await _method.invokeMethod<bool>('requestMic') ?? false;
+    if (!ok) return false;
+    _attachEvents();
+    _running = true;
+    return true;
+  }
+
+  /// Spin up the same foreground service in "idle" mode — no AudioRecord
+  /// opens. Used while streaming a locally-rendered preset over UDP so
+  /// Android keeps the process (and our UDP socket / Timer) alive when the
+  /// activity is backgrounded.
+  Future<void> startIdleForeground() async {
+    if (_running) return;
+    await _method.invokeMethod<bool>('requestIdleForeground');
+    _running = true;
+  }
+
+  void _attachEvents() {
     _sub ??= _events.receiveBroadcastStream().listen((event) {
       if (event is Map) {
         _controller.add(AudioLevel.fromMap(event));
@@ -52,8 +80,6 @@ class AudioCapture {
     }, onError: (e) {
       // surfaced to UI via stream errors if needed
     });
-    _running = true;
-    return true;
   }
 
   Future<void> stop() async {

@@ -1,0 +1,357 @@
+/*
+ * MusicSync — two themes.
+ *
+ *   [data-theme="almanac"]   editorial paper-noir (the original)
+ *   [data-theme="workshop"]  graphite desktop tooling (default)
+ *
+ * Every component reads from CSS variables. To restyle a theme, only the
+ * variable block changes — layout primitives stay put.
+ */
+
+/* ------------------------------------------------------------ Almanac */
+[data-theme="almanac"] {
+  --paper:        #f3ede1;
+  --paper-2:      #e9e2d2;
+  --paper-3:      #ccc0a4;
+  --ink:          #1c1a16;
+  --ink-soft:     #322e27;
+  --ink-mid:      #4a443a;
+  --ink-faint:    #6a6155;
+  --rule:         #9c8e72;
+  --accent:       #6e1f1f;
+  --accent-2:     #8a2a2a;
+  --accent-soft:  rgba(110,31,31,0.10);
+  --accent-ink:   #f3ede1;
+  --oxblood:      #6e1f1f;
+  --olive:        #4a4c1e;
+  --mustard:      #8a611f;
+  --bass:         #6e1f1f;
+  --mid:          #8a611f;
+  --high:         #4a4c1e;
+  --ok:           #4a4c1e;
+  --warn:         #8a611f;
+  --err:          #6e1f1f;
+  --bg:           var(--paper);
+  --bg-2:         var(--paper-2);
+  --panel:        var(--paper);
+  --panel-2:      var(--paper-2);
+  --panel-edge:   var(--rule);
+  --panel-edge-2: var(--ink);
+  --hover:        var(--paper-2);
+  --selected:     var(--paper-3);
+  --strip-bg:     #1c1a16;
+  --strip-empty:  #c8bea8;
+  --focus-bg:     #fbf6ea;
+
+  --serif-display: "Fraunces", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --serif-italic:  "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --mono:          "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans:          "Fraunces", Georgia, serif;
+  --ui:            "Fraunces", Georgia, serif;
+
+  --font-size-base: 14px;
+  --radius:         2px;
+  --pad-page:       28px;
+  --pad-section:    22px;
+}
+
+/* ------------------------------------------------------------ Workshop (default, dark graphite) */
+[data-theme="workshop"] {
+  /* graphite layer stack — base → panel → raised → border */
+  --bg:           #14161a;   /* outermost canvas */
+  --bg-2:         #181b20;   /* main scroll */
+  --panel:        #1d2025;   /* settings panel */
+  --panel-2:      #23272d;   /* nested / raised */
+  --panel-edge:   #2a2f36;   /* 1px panel border */
+  --panel-edge-2: #353b44;   /* stronger border / dividers */
+  --hover:        #262a31;
+  --selected:     #2e333c;
+
+  /* foreground ink */
+  --ink:          #e6e9ee;   /* primary text */
+  --ink-soft:     #b8bfc8;   /* secondary text */
+  --ink-mid:      #8a929c;   /* tertiary / labels */
+  --ink-faint:    #5e6772;   /* hints / disabled */
+  --rule:         #2a2f36;   /* hairlines */
+
+  /* state accents — muted, never neon. one warm + small set of meters. */
+  --accent:       #d2956b;   /* warm amber/peach for primary action + active tab */
+  --accent-2:     #b8794e;
+  --accent-soft:  rgba(210,149,107,0.14);
+  --accent-ink:   #1a1408;   /* foreground when on accent fill */
+  --ok:           #6d9c7a;   /* connected / success */
+  --warn:         #c79456;
+  --err:          #c46a5f;
+
+  --bass:         #c46a5f;   /* meter colors — desaturated, distinct */
+  --mid:          #c79456;
+  --high:         #7fa07a;
+
+  --strip-bg:     #0c0d10;
+  --strip-empty:  #5e6772;
+  --focus-bg:     #1f2429;
+
+  --serif-display: "Inter Tight", "Inter", -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --serif-italic:  "Inter Tight", "Inter", -apple-system, sans-serif;
+  --mono:          "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans:          "Inter Tight", "Inter", -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --ui:            "Inter Tight", "Inter", -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+
+  --font-size-base: 13px;
+  --radius:         3px;
+  --pad-page:       16px;
+  --pad-section:    14px;
+}
+
+/* ------------------------------------------------------------ Base */
+:root {
+  font-family: var(--ui);
+  font-size: var(--font-size-base);
+  color: var(--ink);
+  color-scheme: dark;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--ui);
+  font-size: var(--font-size-base);
+}
+
+/* Almanac keeps its paper grain */
+html[data-theme="almanac"], body[data-theme="almanac"],
+[data-theme="almanac"] body, [data-theme="almanac"] {
+  background-image:
+    radial-gradient(circle at 15% 10%, rgba(110, 31, 31, 0.04), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(91, 93, 42, 0.05), transparent 45%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(28, 26, 22, 0.012) 0px,
+      rgba(28, 26, 22, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------ Typography */
+h1, h2, h3 {
+  font-family: var(--serif-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+}
+
+[data-theme="workshop"] h1 { font-weight: 600; letter-spacing: -0.02em; }
+[data-theme="workshop"] h2 { font-weight: 600; letter-spacing: -0.005em; }
+
+/* ------------------------------------------------------------ Buttons */
+button {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--ui);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  line-height: 1.4;
+}
+
+[data-theme="almanac"] button {
+  border-color: var(--rule);
+  padding: 7px 14px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+[data-theme="almanac"] button:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+[data-theme="workshop"] button {
+  background: var(--panel-2);
+  color: var(--ink-soft);
+  border-color: var(--panel-edge);
+}
+[data-theme="workshop"] button:hover {
+  background: var(--hover);
+  color: var(--ink);
+  border-color: var(--panel-edge-2);
+}
+[data-theme="workshop"] button:active {
+  background: var(--selected);
+}
+
+button:active { transform: translateY(0.5px); }
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink, var(--bg));
+  border-color: var(--accent);
+  font-weight: 600;
+}
+[data-theme="almanac"] button.primary {
+  color: var(--paper);
+  font-family: var(--serif-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+button.primary:hover {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+}
+
+/* ------------------------------------------------------------ Inputs */
+input[type="text"], input[type="number"], select {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius);
+  color: var(--ink);
+  padding: 5px 8px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+[data-theme="almanac"] input[type="text"],
+[data-theme="almanac"] input[type="number"],
+[data-theme="almanac"] select {
+  background: var(--paper);
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 4px 2px;
+  font-size: 13px;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--focus-bg);
+}
+[data-theme="almanac"] input:focus, [data-theme="almanac"] select:focus {
+  border-bottom-color: var(--accent);
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-mid) 50%),
+    linear-gradient(135deg, var(--ink-mid) 50%, transparent 50%);
+  background-position:
+    calc(100% - 12px) 50%,
+    calc(100% - 7px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 22px;
+}
+option {
+  background: var(--panel);
+  color: var(--ink);
+  font-family: var(--mono);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 13px;
+  height: 13px;
+}
+
+/* ------------------------------------------------------------ Range slider */
+input[type=range] {
+  appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--panel-edge-2, var(--rule));
+  border-radius: 1px;
+}
+input[type=range]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  margin-top: -5px;
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--panel-edge-2, var(--rule));
+}
+input[type=range]:hover::-webkit-slider-thumb {
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input[type=range]::-moz-range-track {
+  height: 3px;
+  background: var(--panel-edge-2, var(--rule));
+}
+input[type=range]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--panel-edge-2, var(--rule));
+}
+
+[data-theme="almanac"] input[type=range]::-webkit-slider-thumb {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+[data-theme="almanac"] input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+/* ------------------------------------------------------------ Scrollbar (workshop only) */
+[data-theme="workshop"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+[data-theme="workshop"] ::-webkit-scrollbar-track { background: var(--bg-2); }
+[data-theme="workshop"] ::-webkit-scrollbar-thumb {
+  background: var(--panel-edge);
+  border: 2px solid var(--bg-2);
+  border-radius: 5px;
+}
+[data-theme="workshop"] ::-webkit-scrollbar-thumb:hover { background: var(--panel-edge-2); }
+
+/* ------------------------------------------------------------ Utilities */
+.mono { font-family: var(--mono); }
+.italic-serif {
+  font-family: var(--serif-italic);
+  font-style: italic;
+}
+[data-theme="workshop"] .italic-serif {
+  font-style: normal;     /* workshop doesn't lean on italics for emphasis */
+  color: var(--ink-mid);
+}

@@ -18,6 +18,11 @@ class Visualizer {
   double saturationMin = 0.55;
   double smoothingRise = 0.6;
   double smoothingFall = 0.35;
+  /// Tint hue (0..1). -1 means "auto" — rotate freely through the spectrum.
+  /// When set to a specific hue, output stays near that hue, with mid/high
+  /// content only nudging it within a narrow window so the strip looks
+  /// distinctly "red" (or whatever).
+  double tintHue = -1.0;
 
   // state
   double _hue = 0.0;
@@ -39,8 +44,14 @@ class Visualizer {
     final alpha = raw > _smoothLevel ? smoothingRise : smoothingFall;
     _smoothLevel = _smoothLevel + alpha * (raw - _smoothLevel);
 
-    // Hue rotation, biased by mid/high content.
-    _hue = (_hue + hueDrift + a.mid * 0.004 + a.high * 0.002) % 1.0;
+    // Hue rotation, biased by mid/high content. If a tint is selected, lock
+    // the base hue to it and only nudge slightly so the color stays in
+    // family.
+    if (tintHue >= 0) {
+      _hue = tintHue;
+    } else {
+      _hue = (_hue + hueDrift + a.mid * 0.004 + a.high * 0.002) % 1.0;
+    }
 
     // Beat pulse decays each frame.
     if (a.beat) _beatPulse = math.min(1.0, _beatPulse + beatGain);
@@ -59,7 +70,9 @@ class Visualizer {
       final localBass = (a.bass * fall).clamp(0.0, 1.0);
 
       // hue shifts slightly per LED for a moving rainbow feel.
-      final h = (_hue + (i / n) * 0.18) % 1.0;
+      // Narrower spread when a tint is selected so the strip stays in family.
+      final spread = tintHue >= 0 ? 0.04 : 0.18;
+      final h = (_hue + (i / n) * spread) % 1.0;
       final v = (brightness * (0.55 + 0.45 * fall) + localBass * 0.5)
           .clamp(0.0, 1.0);
 

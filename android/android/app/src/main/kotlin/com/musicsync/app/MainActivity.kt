@@ -1,8 +1,12 @@
 package com.musicsync.app
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.projection.MediaProjectionManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -14,7 +18,9 @@ class MainActivity : FlutterActivity() {
     private val eventChannelName  = "musicsync/audio/events"
 
     private var pendingResult: MethodChannel.Result? = null
+    private var pendingMicResult: MethodChannel.Result? = null
     private val REQ_PROJECTION = 7301
+    private val REQ_MIC        = 7302
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -26,6 +32,31 @@ class MainActivity : FlutterActivity() {
                         pendingResult = result
                         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
                         startActivityForResult(mgr.createScreenCaptureIntent(), REQ_PROJECTION)
+                    }
+                    "requestMic" -> {
+                        val granted = ContextCompat.checkSelfPermission(
+                            this, Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (granted) {
+                            startMicService()
+                            result.success(true)
+                        } else {
+                            pendingMicResult = result
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.RECORD_AUDIO),
+                                REQ_MIC,
+                            )
+                        }
+                    }
+                    "requestIdleForeground" -> {
+                        // Spin up the foreground service without opening
+                        // AudioRecord — keeps the app process alive while
+                        // we stream locally-rendered preset frames via UDP.
+                        val svc = Intent(this, AudioCaptureService::class.java)
+                        svc.action = AudioCaptureService.ACTION_START_IDLE
+                        startForegroundService(svc)
+                        result.success(true)
                     }
                     "stopCapture" -> {
                         val i = Intent(this, AudioCaptureService::class.java)
@@ -63,5 +94,30 @@ class MainActivity : FlutterActivity() {
             }
             pendingResult = null
         }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_MIC) {
+            val granted = grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                startMicService()
+                pendingMicResult?.success(true)
+            } else {
+                pendingMicResult?.success(false)
+            }
+            pendingMicResult = null
+        }
+    }
+
+    private fun startMicService() {
+        val svc = Intent(this, AudioCaptureService::class.java)
+        svc.action = AudioCaptureService.ACTION_START_MIC
+        startForegroundService(svc)
     }
 }

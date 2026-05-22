@@ -6,12 +6,27 @@
 
   let settings = null;
   let mode = 'off';
+  // `view` is the selected tab in the UI. `mode` is the runtime state of the
+  // backend (off / audio / video). They diverge when the user opens the
+  // config tab while audio/video is still running.
+  let view = 'off';
   let leds = [];
   let level = { bass: 0, mid: 0, high: 0 };
   let monitors = [];
   let status = '';
   let presets = [];
   let showAdvanced = false;
+
+  // Theme: 'workshop' (dark graphite, default) | 'almanac' (paper editorial)
+  let theme = 'workshop';
+  function applyTheme(t) {
+    theme = t;
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('musicsync-theme', t); } catch (_) {}
+  }
+  function toggleTheme() {
+    applyTheme(theme === 'workshop' ? 'almanac' : 'workshop');
+  }
 
   // "Reactivity" is the user-facing inverse of `smoothing`. 0=calm, 1=snappy.
   // It two-way-binds to a Slider; whenever it changes we mirror back to
@@ -101,6 +116,15 @@
     } catch (e) { status = 'error: ' + e; }
   }
 
+  // Tab click: config switches the view only; off/audio/video also drive
+  // the backend mode so the runtime state matches what's on screen.
+  async function selectTab(t) {
+    view = t;
+    if (t !== 'config') {
+      await setMode(t);
+    }
+  }
+
   async function testConnection() {
     try {
       await window.go.main.App.TestConnection();
@@ -111,9 +135,14 @@
 
   let stripUnsub, levelUnsub, statusUnsub;
   onMount(async () => {
+    let saved = 'workshop';
+    try { saved = localStorage.getItem('musicsync-theme') || 'workshop'; } catch (_) {}
+    applyTheme(saved === 'almanac' ? 'almanac' : 'workshop');
+
     settings = await window.go.main.App.GetSettings();
     syncReactivity();
     mode = await window.go.main.App.GetMode();
+    view = mode;
     await reloadMonitors();
     try { presets = await window.go.main.App.GetAudioPresets(); } catch (e) { presets = []; }
     stripUnsub  = window.runtime.EventsOn('strip-update', (flat) => leds  = flat);
@@ -177,10 +206,23 @@
         <span class="ornament">❦</span>
         <div class="title-stack">
           <h1>Music<span class="amp italic-serif">·</span>Sync</h1>
-          <span class="subtitle italic-serif">an almanac of ambient light</span>
         </div>
       </div>
       <div class="masthead-right">
+        <div class="theme-toggle" role="group" aria-label="Theme">
+          <button
+            class="theme-opt"
+            class:active={theme === 'workshop'}
+            on:click={() => applyTheme('workshop')}
+            title="Dark graphite — desktop tooling"
+          >workshop</button>
+          <button
+            class="theme-opt"
+            class:active={theme === 'almanac'}
+            on:click={() => applyTheme('almanac')}
+            title="Paper noir — editorial"
+          >almanac</button>
+        </div>
         <div class="dateline mono">
           <span class="dateline-row"><span class="dateline-k">vol.</span><span>I</span></span>
           <span class="dateline-row"><span class="dateline-k">no.</span><span>01</span></span>
@@ -193,63 +235,72 @@
       <span class="ruler-thin"></span>
     </div>
     <nav class="tabs">
-      <span class="tabs-label italic-serif">choose your dispatch —</span>
-      {#each ['off','audio','video'] as t}
-        <button class="tab" class:active={mode === t} on:click={() => setMode(t)}>
-          <span class="tab-num mono">{({off:'00',audio:'01',video:'02'})[t]}</span>
+      {#each ['config','off','audio','video'] as t}
+        <button class="tab" class:active={view === t} on:click={() => selectTab(t)}>
+          <span class="tab-num mono">{({config:'⚙',off:'00',audio:'01',video:'02'})[t]}</span>
           <span class="tab-name">{t}</span>
         </button>
       {/each}
-      <span class="tab-blurb italic-serif">{modeBlurb[mode]}</span>
     </nav>
   </header>
 
   {#if settings}
     <div class="strip-pin">
       <div class="strip-pin-head">
-        <span class="chap-no">PLATE</span>
-        <span class="strip-pin-title">The strip, as printed</span>
+        <span class="chap-no">STRIP</span>
+        <span class="strip-pin-title">Preview</span>
         <span class="dotted-rule"></span>
-        <span class="aside italic-serif">{settings.led_count} px · live</span>
+        <span class="aside">{settings.led_count} px · live</span>
       </div>
       <StripPreview {leds} />
     </div>
 
     <main>
-      <section class="chapter">
-        <div class="chapter-head">
-          <span class="chap-no">CH · I</span>
-          <h2>Connection</h2>
-          <span class="dotted-rule"></span>
-          <span class="aside italic-serif">the wire to the wall</span>
-          <button class="sm ghost" on:click={resetAll}>reset everything</button>
-          <button class="primary sm" on:click={testConnection}>Blink</button>
-        </div>
-        <div class="fields-grid">
-          <label class="field"><span>IP</span><input type="text" bind:value={settings.wled_ip} /></label>
-          <label class="field"><span>Port</span><input type="number" bind:value={settings.port} /></label>
-          <label class="field"><span>LEDs</span><input type="number" bind:value={settings.led_count} /></label>
-          <label class="field"><span>Skip start</span><input type="number" bind:value={settings.skip_start} /></label>
-          <label class="field"><span>Skip end</span><input type="number" bind:value={settings.skip_end} /></label>
-          <label class="field"><span>Send fps</span><input type="number" bind:value={settings.send_fps} /></label>
-          <label class="field"><span>Follow ms</span><input type="number" bind:value={settings.follow_ms} /></label>
-        </div>
-      </section>
-
-      {#if mode === 'audio'}
+      {#if view === 'config'}
         <section class="chapter">
           <div class="chapter-head">
-            <span class="chap-no">CH · II</span>
+            <span class="chap-no">CFG</span>
+            <h2>Device</h2>
+            <span class="dotted-rule"></span>
+            <button class="sm ghost" on:click={resetAll}>reset everything</button>
+            <button class="primary sm" on:click={testConnection}>Blink</button>
+          </div>
+          <div class="fields-grid">
+            <label class="field"><span>IP</span><input type="text" bind:value={settings.wled_ip} /></label>
+            <label class="field"><span>Port</span><input type="number" bind:value={settings.port} /></label>
+            <label class="field"><span>LEDs</span><input type="number" bind:value={settings.led_count} /></label>
+            <label class="field"><span>Skip start</span><input type="number" bind:value={settings.skip_start} /></label>
+            <label class="field"><span>Skip end</span><input type="number" bind:value={settings.skip_end} /></label>
+            <label class="field"><span>Send fps</span><input type="number" bind:value={settings.send_fps} /></label>
+            <label class="field"><span>Follow ms</span><input type="number" bind:value={settings.follow_ms} /></label>
+          </div>
+        </section>
+      {/if}
+
+      {#if view === 'off'}
+        <section class="chapter">
+          <div class="chapter-head">
+            <span class="chap-no">00</span>
+            <h2>Off</h2>
+            <span class="dotted-rule"></span>
+          </div>
+          <p class="hint">Strip is idle. Switch to <strong>audio</strong> or <strong>video</strong> to drive it.</p>
+        </section>
+      {/if}
+
+      {#if view === 'audio'}
+        <section class="chapter">
+          <div class="chapter-head">
+            <span class="chap-no">02</span>
             <h2>Audio sync</h2>
             <span class="dotted-rule"></span>
-            <span class="aside italic-serif">idles dark · music only</span>
             <button class="sm ghost" on:click={resetAudio}>reset audio</button>
           </div>
 
           {#if presets.length}
             <div class="subhead">
               <span class="sub-no mono">a.</span>
-              <span class="sub-title">Quick recipes</span>
+              <span class="sub-title">Presets</span>
               <span class="sub-rule"></span>
             </div>
             <div class="presets-row">
@@ -260,13 +311,11 @@
                   title={p.blurb}
                 >
                   <span class="preset-name">{p.name}</span>
-                  <span class="preset-blurb italic-serif">{p.blurb}</span>
+                  <span class="preset-blurb">{p.blurb}</span>
                 </button>
               {/each}
             </div>
-            <p class="hint italic-serif">
-              pick a recipe to swap every dial below at once. your palette and hue stay put.
-            </p>
+            <p class="hint">Applies all dials below. Palette and hue are kept.</p>
           {/if}
 
           <div class="subhead">
@@ -340,7 +389,6 @@
             <summary>
               <span class="adv-marker mono">{showAdvanced ? '−' : '+'}</span>
               <span class="adv-title">Advanced</span>
-              <span class="adv-hint italic-serif">technical knobs · only if you know what they do</span>
             </summary>
             <div class="sliders-grid adv-grid">
               <Slider label="Gamma"          bind:value={settings.audio.gamma}          min={0.4}    max={1.4}  step={0.02}   precision={2} />
@@ -355,13 +403,12 @@
         </section>
       {/if}
 
-      {#if mode === 'video'}
+      {#if view === 'video'}
         <section class="chapter">
           <div class="chapter-head">
-            <span class="chap-no">CH · II</span>
+            <span class="chap-no">02</span>
             <h2>Video sync</h2>
             <span class="dotted-rule"></span>
-            <span class="aside italic-serif">edge-painted ambient</span>
             <button class="sm ghost" on:click={resetVideo}>reset video</button>
           </div>
           <div class="fields-grid">
@@ -402,10 +449,9 @@
       <span class="mono small">follow {settings.follow_ms}ms</span>
       {#if status}
         <span class="rule-v"></span>
-        <span class="italic-serif small">{status}</span>
+        <span class="small">{status}</span>
       {/if}
       <span class="spacer"></span>
-      <span class="colophon italic-serif">— MusicSync, set in Fraunces &amp; JetBrains Mono</span>
     </footer>
   {:else}
     <div class="loading italic-serif">Setting type…</div>
@@ -1013,4 +1059,162 @@
     color: var(--ink-mid);
     font-size: 18px;
   }
+
+  /* ----------------------- theme toggle (both themes) ----------------------- */
+  .theme-toggle {
+    display: inline-flex;
+    border: 1px solid var(--panel-edge);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-right: 10px;
+    align-self: center;
+  }
+  .theme-opt {
+    border: none;
+    background: transparent;
+    color: var(--ink-mid);
+    padding: 4px 10px;
+    font-family: var(--ui);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.12s, color 0.12s;
+  }
+  .theme-opt + .theme-opt { border-left: 1px solid var(--panel-edge); }
+  .theme-opt:hover { color: var(--ink); background: var(--hover, transparent); }
+  .theme-opt.active {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* =================================================================
+     WORKSHOP THEME — recolor only. Almanac's layout, typography,
+     spines, banderoles, drop caps, dotted rules all stay. Just paint
+     the editorial structure in graphite + amber instead of paper + oxblood.
+     ================================================================= */
+
+  /* header gradient — swap paper wash for graphite wash */
+  :global([data-theme="workshop"]) header {
+    background:
+      linear-gradient(to bottom, rgba(210,149,107,0.05), transparent 60%),
+      var(--bg);
+    border-bottom: 1px solid var(--panel-edge);
+  }
+  :global([data-theme="workshop"]) header::before { border-top-color: var(--accent); border-left-color: var(--accent); }
+  :global([data-theme="workshop"]) header::after  { border-top-color: var(--accent); border-right-color: var(--accent); }
+
+  :global([data-theme="workshop"]) .ornament { color: var(--accent); }
+  :global([data-theme="workshop"]) .amp { color: var(--accent); }
+  :global([data-theme="workshop"]) .dateline { border-left-color: var(--panel-edge); }
+
+  :global([data-theme="workshop"]) .ruler-thick { background: var(--ink); }
+  :global([data-theme="workshop"]) .ruler-thin  { border-bottom-color: var(--panel-edge); }
+
+  /* tabs — keep editorial form, recolor */
+  :global([data-theme="workshop"]) .tab:hover {
+    background: var(--hover);
+    color: var(--ink);
+    border-color: var(--panel-edge);
+    border-bottom-color: var(--ink);
+  }
+  :global([data-theme="workshop"]) .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: transparent;
+  }
+  :global([data-theme="workshop"]) .tab.active::before { color: var(--accent); }
+  :global([data-theme="workshop"]) .tab.active .tab-num { color: var(--accent); }
+  :global([data-theme="workshop"]) .tab-blurb { border-left-color: var(--panel-edge); }
+
+  /* pinned strip — graphite wash instead of paper */
+  :global([data-theme="workshop"]) .strip-pin {
+    background:
+      linear-gradient(to bottom, var(--bg-2) 0%, var(--bg-2) 80%, rgba(0,0,0,0.18) 100%),
+      var(--bg-2);
+    border-bottom: 1px solid var(--panel-edge);
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  }
+
+  /* chapter spine — graphite double rule */
+  :global([data-theme="workshop"]) .chapter::before { background: var(--ink); }
+  :global([data-theme="workshop"]) .chapter::after  { background: var(--panel-edge-2); }
+
+  /* banderole — amber on graphite */
+  :global([data-theme="workshop"]) .chap-no {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  :global([data-theme="workshop"]) .chapter-head h2::first-letter {
+    color: var(--accent);
+  }
+
+  :global([data-theme="workshop"]) .dotted-rule { border-bottom-color: var(--panel-edge); }
+
+  /* subsection rules */
+  :global([data-theme="workshop"]) .sub-no { color: var(--accent); }
+  :global([data-theme="workshop"]) .sub-rule { border-bottom-color: var(--panel-edge); }
+  :global([data-theme="workshop"]) .sub-rule::after {
+    color: var(--panel-edge-2);
+    background: var(--bg);
+  }
+
+  /* field labels — drop the oxblood accent dot, use amber */
+  :global([data-theme="workshop"]) .field > span::after { color: var(--accent); }
+  :global([data-theme="workshop"]) .field.check { border-bottom-color: var(--panel-edge); }
+
+  /* ghost button */
+  :global([data-theme="workshop"]) button.ghost {
+    border-color: var(--panel-edge);
+    color: var(--ink-mid);
+  }
+  :global([data-theme="workshop"]) button.ghost:hover {
+    background: var(--hover);
+    color: var(--ink);
+    border-color: var(--panel-edge-2);
+  }
+
+  /* presets */
+  :global([data-theme="workshop"]) .preset {
+    background: var(--panel);
+    border-color: var(--panel-edge);
+  }
+  :global([data-theme="workshop"]) .preset::before {
+    border-top-color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  :global([data-theme="workshop"]) .preset:hover {
+    background: var(--hover);
+    border-color: var(--panel-edge-2);
+  }
+
+  /* advanced fold */
+  :global([data-theme="workshop"]) .advanced { border-top-color: var(--panel-edge); }
+  :global([data-theme="workshop"]) .adv-marker { color: var(--accent); }
+  :global([data-theme="workshop"]) .adv-grid { border-left-color: var(--panel-edge); }
+
+  /* palette block divider */
+  :global([data-theme="workshop"]) .palette-block { border-bottom-color: var(--panel-edge); }
+  :global([data-theme="workshop"]) .mono-pick-row .swatch {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  /* vu wrap */
+  :global([data-theme="workshop"]) .vu-wrap { border-top-color: var(--panel-edge); }
+
+  /* footer — graphite version of the editorial footer */
+  :global([data-theme="workshop"]) footer {
+    border-top: 2px solid var(--ink);
+    background:
+      linear-gradient(to top, rgba(0,0,0,0.25), transparent 70%),
+      var(--bg);
+    color: var(--ink-soft);
+  }
+  :global([data-theme="workshop"]) footer::before { background: var(--panel-edge); }
+  :global([data-theme="workshop"]) .foot-mark { color: var(--ok); }
+  :global([data-theme="workshop"]) .rule-v { background: var(--panel-edge); }
 </style>

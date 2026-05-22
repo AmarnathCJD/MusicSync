@@ -18,36 +18,23 @@ class ControlsScreen extends StatelessWidget {
       w.primaryRgb[1],
       w.primaryRgb[2],
     );
-    final hex = '#${col.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+    final hex =
+        col.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.only(top: 4, bottom: 40),
       children: [
-        SectionCard(
-          title: 'Power',
-          trailing: Switch(
-            value: w.on,
-            onChanged: state.setPower,
-          ),
-          child: Text(
-            w.on ? 'On' : 'Off',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTones.textSecondary,
-                ),
-          ),
+        _Hero(
+          color: col,
+          hex: hex,
+          on: w.on,
+          brightness: w.brightness,
+          onTap: () => _openPicker(state, context, col),
+          onPowerToggle: () => state.setPower(!w.on),
         ),
-        const SectionDivider(),
         SectionCard(
           title: 'Brightness',
-          trailing: Text(
-            w.brightness.toString(),
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontFeatures: [FontFeature.tabularFigures()],
-              color: AppTones.textPrimary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          trailing: _NumBadge(value: w.brightness.toString()),
           child: LabeledSlider(
             label: 'Master',
             value: w.brightness.toDouble(),
@@ -58,56 +45,6 @@ class ControlsScreen extends StatelessWidget {
             onChanged: (v) => state.setBrightness(v.round()),
           ),
         ),
-        const SectionDivider(),
-        SectionCard(
-          title: 'Color',
-          trailing: GestureDetector(
-            onTap: () => _openPicker(context, col),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTones.surface,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppTones.hairline),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: col,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    hex,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      letterSpacing: 0.6,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                      color: AppTones.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          child: GestureDetector(
-            onTap: () => _openPicker(context, col),
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: col,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ),
-        ),
-        const SectionDivider(),
         SectionCard(
           title: 'Effect tuning',
           child: Column(
@@ -137,22 +74,19 @@ class ControlsScreen extends StatelessWidget {
     );
   }
 
-  void _openPicker(BuildContext context, Color current) {
+  void _openPicker(AppState state, BuildContext context, Color current) {
     Color picked = current;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          'Color',
-          style: Theme.of(ctx).textTheme.titleLarge,
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        title: Text('Pick color', style: Theme.of(ctx).textTheme.titleLarge),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
         content: SingleChildScrollView(
           child: ColorPicker(
             pickerColor: current,
             enableAlpha: false,
             labelTypes: const [],
-            pickerAreaBorderRadius: BorderRadius.circular(4),
+            pickerAreaBorderRadius: BorderRadius.circular(10),
             onColorChanged: (c) => picked = c,
           ),
         ),
@@ -163,12 +97,145 @@ class ControlsScreen extends StatelessWidget {
           ),
           FilledButton(
             onPressed: () {
-              state.setColor([picked.red, picked.green, picked.blue]);
+              final argb = picked.value;
+              final r = (argb >> 16) & 0xFF;
+              final g = (argb >> 8) & 0xFF;
+              final b = argb & 0xFF;
+              state.setColor([r, g, b]);
               Navigator.pop(ctx);
             },
             child: const Text('Apply'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  final Color color;
+  final String hex;
+  final bool on;
+  final int brightness;
+  final VoidCallback onTap;
+  final VoidCallback onPowerToggle;
+
+  const _Hero({
+    required this.color,
+    required this.hex,
+    required this.on,
+    required this.brightness,
+    required this.onTap,
+    required this.onPowerToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Brightness influences the visible intensity of the color preview,
+    // so the hero subtly reflects the live state.
+    final dimFactor = (brightness.clamp(0, 255) / 255.0);
+    final preview = on
+        ? Color.lerp(AppTones.bg1, color, 0.25 + 0.75 * dimFactor)!
+        : AppTones.bg2;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOut,
+          height: 188,
+          decoration: BoxDecoration(
+            color: preview,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      on ? 'ON' : 'OFF',
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 1.6,
+                        fontWeight: FontWeight.w700,
+                        color: on
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: onPowerToggle,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.35),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.power_settings_new_rounded,
+                        size: 18,
+                        color: on
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                '#$hex',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.5,
+                  color: Colors.white.withOpacity(on ? 0.95 : 0.5),
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Tap to change primary color',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withOpacity(0.55),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NumBadge extends StatelessWidget {
+  final String value;
+  const _NumBadge({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      value,
+      style: const TextStyle(
+        fontSize: 13,
+        color: AppTones.textPrimary,
+        fontWeight: FontWeight.w600,
+        fontFeatures: [FontFeature.tabularFigures()],
       ),
     );
   }

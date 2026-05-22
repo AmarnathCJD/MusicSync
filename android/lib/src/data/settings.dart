@@ -12,6 +12,9 @@ class AppSettings {
   double beatGain;
   double hueDrift;
   double warmth;
+  /// Hue (0..1) to tint the audio visualizer toward. -1 means "auto" — let
+  /// the visualizer rotate hue across the full spectrum (legacy behavior).
+  double audioTintHue;
 
   AppSettings({
     this.wledIp = '10.158.240.95',
@@ -23,6 +26,7 @@ class AppSettings {
     this.beatGain = 0.55,
     this.hueDrift = 0.015,
     this.warmth = 0.05,
+    this.audioTintHue = -1.0,
   });
 
   static const _kIp = 'wled_ip';
@@ -34,6 +38,7 @@ class AppSettings {
   static const _kBeat = 'beat_gain';
   static const _kHue = 'hue_drift';
   static const _kWarm = 'warmth';
+  static const _kTint = 'audio_tint_hue';
 
   static Future<AppSettings> load() async {
     final p = await SharedPreferences.getInstance();
@@ -47,6 +52,7 @@ class AppSettings {
       beatGain: p.getDouble(_kBeat) ?? 0.55,
       hueDrift: p.getDouble(_kHue) ?? 0.015,
       warmth: p.getDouble(_kWarm) ?? 0.05,
+      audioTintHue: p.getDouble(_kTint) ?? -1.0,
     );
   }
 
@@ -61,5 +67,6 @@ class AppSettings {
     await p.setDouble(_kBeat, beatGain);
     await p.setDouble(_kHue, hueDrift);
     await p.setDouble(_kWarm, warmth);
+    await p.setDouble(_kTint, audioTintHue);
   }
 }

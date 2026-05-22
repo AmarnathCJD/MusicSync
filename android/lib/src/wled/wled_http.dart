@@ -112,36 +112,70 @@ class WledClient {
     );
   }
 
+  // Every manual mutation forces live:false so we leave any realtime/UDP
+  // override left behind by audio sync (DRGB packets put WLED into "live"
+  // mode for up to a few seconds, which blocks built-in rendering).
+  // We always target segment id 0 so multi-segment configs don't drop writes
+  // onto a stray segment.
+
   Future<void> setPower(bool on) =>
-      _postState({'on': on});
+      _postState({'on': on, 'live': false});
 
   Future<void> setBrightness(int bri) =>
-      _postState({'bri': bri.clamp(0, 255)});
+      _postState({'bri': bri.clamp(0, 255), 'on': true, 'live': false});
+
+  /// Optional segment bounds applied to every fx/color write. Set via
+  /// [applyBounds] from AppState so that skip-start / skip-end leds stay dark.
+  int? _segStart;
+  int? _segStop;
+
+  void applyBounds({required int start, required int stop}) {
+    _segStart = start;
+    _segStop = stop;
+  }
+
+  Map<String, dynamic> _boundedSeg(Map<String, dynamic> seg) {
+    if (_segStart != null) seg['start'] = _segStart;
+    if (_segStop != null) seg['stop'] = _segStop;
+    return seg;
+  }
 
   Future<void> setColor(List<int> rgb) =>
       _postState({
+        'on': true,
+        'live': false,
         'seg': [
-          {
+          _boundedSeg({
+            'id': 0,
+            // Force solid mode so the color isn't masked by whatever effect
+            // was last running.
+            'fx': 0,
             'col': [rgb, [0, 0, 0], [0, 0, 0]],
-          }
+          }),
         ],
       });
 
   Future<void> setEffect(int fx, {int? speed, int? intensity, int? palette}) {
-    final seg = <String, dynamic>{'fx': fx};
+    final seg = <String, dynamic>{'id': 0, 'fx': fx};
     if (speed != null) seg['sx'] = speed.clamp(0, 255);
     if (intensity != null) seg['ix'] = intensity.clamp(0, 255);
     if (palette != null) seg['pal'] = palette.clamp(0, 70);
     return _postState({
       'on': true,
-      'seg': [seg],
+      'live': false,
+      'seg': [_boundedSeg(seg)],
     });
   }
 
+  /// Explicitly leave realtime mode (used after stopping audio sync).
+  Future<void> disableLiveOverride() => _postState({'live': false});
+
   Future<void> setSpeedIntensity(int speed, int intensity) =>
       _postState({
+        'live': false,
         'seg': [
           {
+            'id': 0,
             'sx': speed.clamp(0, 255),
             'ix': intensity.clamp(0, 255),
           }
@@ -150,8 +184,9 @@ class WledClient {
 
   Future<void> setPalette(int pal) =>
       _postState({
+        'live': false,
         'seg': [
-          {'pal': pal.clamp(0, 70)},
+          {'id': 0, 'pal': pal.clamp(0, 70)},
         ],
       });
 
@@ -159,13 +194,19 @@ class WledClient {
   Future<void> enableLiveOverride() =>
       _postState({'on': true, 'live': true});
 
+  String lastRequest = '';
+  String lastResponse = '';
+
   Future<void> _postState(Map<String, dynamic> body) async {
-    await http
+    final payload = jsonEncode(body);
+    lastRequest = payload;
+    final r = await http
         .post(
           _u('/json/state'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
+          body: payload,
         )
         .timeout(const Duration(seconds: 3));
+    lastResponse = '${r.statusCode}: ${r.body}';
   }
 }

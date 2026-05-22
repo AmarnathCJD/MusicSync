@@ -11,131 +11,200 @@ class EffectsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
-      itemCount: curatedPresets.length + 1,
-      separatorBuilder: (_, i) {
-        if (i == 0) return const SizedBox.shrink();
-        return const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Divider(height: 1, thickness: 1, color: AppTones.hairline),
-        );
-      },
-      itemBuilder: (ctx, i) {
-        if (i == 0) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: Text(
-              'PRESETS',
-              style: t.labelMedium?.copyWith(
-                color: AppTones.textMuted,
-                letterSpacing: 1.4,
-                fontSize: 10.5,
-              ),
+    final width = MediaQuery.of(context).size.width;
+    final crossAxis = width > 720
+        ? 3
+        : width > 480
+            ? 2
+            : 2;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(28, 4, 28, 14),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Curated atmospheres',
+                  style: t.titleLarge?.copyWith(fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap a tile to apply. The active scene stays highlighted.',
+                  style: t.bodyMedium,
+                ),
+              ],
             ),
-          );
-        }
-        final p = curatedPresets[i - 1];
-        final active = state.wled.effect == p.fx;
-        return _PresetRow(
-          preset: p,
-          active: active,
-          onTap: () => state.applyPreset(
-            fx: p.fx,
-            palette: p.palette,
-            speed: p.speed,
-            intensity: p.intensity,
-            color: p.color,
           ),
-        );
-      },
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(28, 0, 28, 28),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxis,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 1.55,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) {
+                final p = curatedPresets[i];
+                // Presets are const, so identity-compare is the right way to
+                // tell whether a tile is the currently-streaming one.
+                final active = p.off
+                    ? !state.wled.on
+                    : identical(state.currentPreset, p);
+                return _PresetTile(
+                  preset: p,
+                  active: active,
+                  onTap: () => state.applyPreset(p),
+                );
+              },
+              childCount: curatedPresets.length,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _PresetRow extends StatelessWidget {
+class _PresetTile extends StatefulWidget {
   final EffectPreset preset;
   final bool active;
   final VoidCallback onTap;
 
-  const _PresetRow({
+  const _PresetTile({
     required this.preset,
     required this.active,
     required this.onTap,
   });
 
   @override
+  State<_PresetTile> createState() => _PresetTileState();
+}
+
+class _PresetTileState extends State<_PresetTile> {
+  bool _hover = false;
+
+  @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-        child: Row(
-          children: [
-            _SwatchTrio(colors: preset.swatch),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+    final p = widget.preset;
+    final swatch = p.swatch;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: widget.active
+                ? AppTones.bg3
+                : (_hover ? AppTones.bg2 : AppTones.bg2),
+            border: Border.all(
+              color: widget.active ? AppTones.accent : AppTones.lineSoft,
+              width: 1,
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Stack(
+            children: [
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    preset.name,
-                    style: t.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppTones.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      _SwatchStack(colors: swatch),
+                      const Spacer(),
+                      if (widget.active)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTones.accent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: AppTones.accent.withOpacity(0.5)),
+                          ),
+                          child: const Text(
+                            'ACTIVE',
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              letterSpacing: 1.4,
+                              color: AppTones.accent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    preset.tagline,
-                    style: t.bodySmall,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        p.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.1,
+                          color: AppTones.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        p.tagline,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTones.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            AnimatedOpacity(
-              opacity: active ? 1 : 0,
-              duration: const Duration(milliseconds: 120),
-              child: const Text(
-                'ACTIVE',
-                style: TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 1.4,
-                  color: AppTones.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SwatchTrio extends StatelessWidget {
+class _SwatchStack extends StatelessWidget {
   final List<Color> colors;
-  const _SwatchTrio({required this.colors});
+  const _SwatchStack({required this.colors});
 
   @override
   Widget build(BuildContext context) {
+    final count = colors.length.clamp(0, 3);
     return SizedBox(
-      width: 36,
+      width: 14.0 + (count - 1) * 9.0,
       height: 14,
       child: Stack(
         children: [
-          for (var i = 0; i < colors.length && i < 3; i++)
+          for (var i = 0; i < count; i++)
             Positioned(
-              left: i * 11.0,
-              top: 0,
+              left: i * 9.0,
               child: Container(
                 width: 14,
                 height: 14,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colors[i],
-                  border: Border.all(color: AppTones.ink, width: 1.5),
+                  border: Border.all(color: AppTones.bg1, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors[i].withOpacity(0.4),
+                      blurRadius: 7,
+                    ),
+                  ],
                 ),
               ),
             ),

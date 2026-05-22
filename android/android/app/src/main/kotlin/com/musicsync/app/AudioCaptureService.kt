@@ -11,6 +11,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
@@ -27,8 +28,10 @@ import kotlin.math.PI
 class AudioCaptureService : Service() {
 
     companion object {
-        const val ACTION_START = "musicsync.audio.START"
-        const val ACTION_STOP  = "musicsync.audio.STOP"
+        const val ACTION_START      = "musicsync.audio.START"
+        const val ACTION_START_MIC  = "musicsync.audio.START_MIC"
+        const val ACTION_START_IDLE = "musicsync.audio.START_IDLE"
+        const val ACTION_STOP       = "musicsync.audio.STOP"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA        = "data"
 
@@ -47,10 +50,42 @@ class AudioCaptureService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startCapture(intent)
-            ACTION_STOP  -> { stopCapture(); stopSelf() }
+            ACTION_START      -> startCapture(intent)
+            ACTION_START_MIC  -> startMicCapture()
+            ACTION_START_IDLE -> startIdleForeground()
+            ACTION_STOP       -> { stopCapture(); stopSelf() }
         }
         return START_NOT_STICKY
+    }
+
+    private fun startIdleForeground() {
+        // No AudioRecord opens — the service exists only so Android keeps
+        // our process alive while we stream locally-rendered preset frames
+        // over UDP from the Dart isolate.
+        if (running) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, idleNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(NOTIF_ID, idleNotification())
+        }
+        // Mark running so a subsequent ACTION_START / ACTION_START_MIC
+        // doesn't double-up; the loop check `while (running)` is never
+        // entered here because we never start a capture thread.
+        running = true
+    }
+
+    private fun idleNotification(): Notification {
+        val mgr = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (mgr.getNotificationChannel(NOTIF_CHANNEL) == null) {
+            val ch = NotificationChannel(NOTIF_CHANNEL, "MusicSync Audio", NotificationManager.IMPORTANCE_LOW)
+            mgr.createNotificationChannel(ch)
+        }
+        return NotificationCompat.Builder(this, NOTIF_CHANNEL)
+            .setContentTitle("MusicSync preset")
+            .setContentText("Streaming preset to WLED")
+            .setSmallIcon(android.R.drawable.ic_media_play)
+            .setOngoing(true)
+            .build()
     }
 
     private fun ensureNotification(): Notification {
@@ -130,6 +165,124 @@ class AudioCaptureService : Service() {
 
         thread(name = "musicsync-capture", isDaemon = true) {
             captureLoop(rec)
+        }
+    }
+
+    private fun startMicCapture() {
+        if (running) return
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // mediaProjection foreground type is fine; we don't actually use
+            // projection here but the declared type satisfies the OS.
+            startForeground(NOTIF_ID, ensureNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(NOTIF_ID, ensureNotification())
+        }
+
+        val format = AudioFormat.Builder()
+            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+            .setSampleRate(SAMPLE_RATE)
+            .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+            .build()
+
+        val minBuf = AudioRecord.getMinBufferSize(
+            SAMPLE_RATE,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_FLOAT
+        )
+        val bufBytes = max(minBuf, FRAMES * 4 * 4)
+
+        val rec = try {
+            AudioRecord.Builder()
+                .setAudioSource(MediaRecorder.AudioSource.MIC)
+                .setAudioFormat(format)
+                .setBufferSizeInBytes(bufBytes)
+                .build()
+        } catch (t: Throwable) {
+            AudioBus.emitError("mic init failed: ${t.message}")
+            stopSelf()
+            return
+        }
+        record = rec
+
+        if (rec.state != AudioRecord.STATE_INITIALIZED) {
+            AudioBus.emitError("Mic AudioRecord init failed")
+            stopSelf()
+            return
+        }
+
+        rec.startRecording()
+        running = true
+
+        thread(name = "musicsync-mic", isDaemon = true) {
+            micCaptureLoop(rec)
+        }
+    }
+
+    private fun micCaptureLoop(rec: AudioRecord) {
+        // Mono mic: read straight into mono buffer.
+        val mono   = FloatArray(FRAMES)
+        val window = DoubleArray(FRAMES) { i -> 0.5 * (1.0 - cos(2.0 * PI * i / (FRAMES - 1))) }
+        val re = DoubleArray(FRAMES)
+        val im = DoubleArray(FRAMES)
+        val binCount = FRAMES / 2 + 1
+        val freqs = DoubleArray(binCount) { i -> i.toDouble() * SAMPLE_RATE / FRAMES }
+        val bassIdx = (0 until binCount).filter { freqs[it] in 20.0..200.0 }
+        val midIdx  = (0 until binCount).filter { freqs[it] in 200.0..2000.0 }
+        val highIdx = (0 until binCount).filter { freqs[it] in 2000.0..8000.0 }
+
+        var peak         = 1e-6
+        var smoothLevel  = 0.0
+        var bassBaseline = 0.0
+        val emitEvery    = 2
+        var emitCounter  = 0
+
+        while (running) {
+            var got = 0
+            while (got < FRAMES && running) {
+                val r = rec.read(mono, got, FRAMES - got, AudioRecord.READ_BLOCKING)
+                if (r <= 0) break
+                got += r
+            }
+            if (!running) break
+
+            for (i in 0 until FRAMES) {
+                re[i] = mono[i].toDouble() * window[i]
+                im[i] = 0.0
+            }
+            fftRadix2(re, im)
+
+            fun bandMag(idxs: List<Int>): Double {
+                if (idxs.isEmpty()) return 0.0
+                var s = 0.0
+                for (i in idxs) s += hypot(re[i], im[i])
+                return s / idxs.size
+            }
+            val bass = bandMag(bassIdx)
+            val mid  = bandMag(midIdx)
+            val high = bandMag(highIdx)
+            val level = bass + mid + high
+
+            peak = max(peak * 0.9995, level)
+            val normLevel = if (peak > 0) level / peak else 0.0
+            smoothLevel = 0.35 * smoothLevel + 0.65 * normLevel
+
+            val bassNorm = if (peak > 0) bass / peak else 0.0
+            bassBaseline = 0.92 * bassBaseline + 0.08 * bassNorm
+            val beatStrength = bassNorm - bassBaseline
+            val beat = beatStrength > 0.12
+
+            emitCounter++
+            if (emitCounter >= emitEvery) {
+                emitCounter = 0
+                AudioBus.emitLevel(
+                    bassNorm,
+                    if (peak > 0) mid / peak else 0.0,
+                    if (peak > 0) high / peak else 0.0,
+                    smoothLevel,
+                    beat
+                )
+            }
         }
     }
 

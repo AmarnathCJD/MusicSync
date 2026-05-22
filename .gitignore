@@ -1,6 +1,59 @@
-android/build
-android/.dart_tool
-android/android/.gradle
-android/android/app/build
-MusicSync-go/build
-MusicSync-go/frontend/node_modules
+# ----- OS / editor -----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# ----- Python (root prototypes) -----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ----- Flutter / Android (android/) -----
+android/.dart_tool/
+android/.flutter-plugins
+android/.flutter-plugins-dependencies
+android/.packages
+android/build/
+android/.gradle/
+android/android/.gradle/
+android/android/app/build/
+android/android/local.properties
+android/android/key.properties
+android/android/captures/
+android/android/**/.cxx/
+android/android/**/generated/
+android/ios/Pods/
+android/ios/.symlinks/
+android/ios/Flutter/Flutter.framework
+android/ios/Flutter/Flutter.podspec
+android/macos/Pods/
+android/**/GeneratedPluginRegistrant.*
+android/pubspec.lock.bak
+*.jks
+*.keystore
+
+# ----- Wails / Go / Node (desktop/) -----
+desktop/build/bin/
+desktop/build/darwin/
+desktop/build/linux/
+desktop/build/windows/installer/
+desktop/build/windows/**/*.syso
+desktop/frontend/node_modules/
+desktop/frontend/dist/
+desktop/frontend/.vite/
+desktop/frontend/package.json.md5
+desktop/frontend/wailsjs/
+desktop/**/*.exe
+desktop/wails.log
+
+# ----- Misc artifacts -----
+*.log
+*.tmp
+.cache/

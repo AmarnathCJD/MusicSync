@@ -1,43 +1,69 @@
 import 'package:flutter/material.dart';
 
+/// Cinematic, layered dark palette. Tones are deliberately close in luminance
+/// so depth comes from subtle tonal shifts rather than borders or shadows.
 class AppTones {
-  static const Color ink = Color(0xFF111113);
-  static const Color surface = Color(0xFF17171A);
-  static const Color surfaceRaised = Color(0xFF1D1D21);
-  static const Color hairline = Color(0xFF2A2A2F);
-  static const Color textPrimary = Color(0xFFE8E6E1);
-  static const Color textSecondary = Color(0xFF8E8B85);
-  static const Color textMuted = Color(0xFF5E5C58);
-  static const Color accent = Color(0xFFC58A5C);
-  static const Color accentSoft = Color(0xFF3A2D24);
-  static const Color positive = Color(0xFF7FA37A);
-  static const Color negative = Color(0xFFB46B6B);
+  // Background layers (darkest -> lightest)
+  static const Color bg0 = Color(0xFF0B0F14); // deepest ambient
+  static const Color bg1 = Color(0xFF11161D); // primary canvas
+  static const Color bg2 = Color(0xFF161C25); // raised panel
+  static const Color bg3 = Color(0xFF1D2530); // hover / active panel
+  static const Color bg4 = Color(0xFF252E3B); // control surface
+
+  // Atmospheric bloom (used as faint radial wash in the background)
+  static const Color bloom = Color(0xFF1E3346);
+
+  // Hairlines & borders — kept extremely subtle, used sparingly
+  static const Color line = Color(0x1AFFFFFF); // 10% white
+  static const Color lineSoft = Color(0x0DFFFFFF); // 5% white
+
+  // Text
+  static const Color textPrimary = Color(0xFFE6ECF2);
+  static const Color textSecondary = Color(0xFF9AA4B2);
+  static const Color textMuted = Color(0xFF5E6877);
+
+  // Accent — icy cyan, used very sparingly
+  static const Color accent = Color(0xFF7CCBE6);
+  static const Color accentDim = Color(0xFF3B6E84);
+  static const Color accentGlow = Color(0x337CCBE6);
+
+  // Status
+  static const Color positive = Color(0xFF8FCBA8);
+  static const Color negative = Color(0xFFD58A8A);
 }
 
 ThemeData buildAppTheme() {
   const scheme = ColorScheme.dark(
-    surface: AppTones.surface,
+    surface: AppTones.bg1,
     onSurface: AppTones.textPrimary,
+    surfaceContainerHighest: AppTones.bg2,
     primary: AppTones.accent,
-    onPrimary: AppTones.ink,
+    onPrimary: AppTones.bg0,
     secondary: AppTones.textSecondary,
-    onSecondary: AppTones.ink,
+    onSecondary: AppTones.bg0,
     error: AppTones.negative,
-    onError: AppTones.ink,
-    outline: AppTones.hairline,
+    onError: AppTones.bg0,
+    outline: AppTones.line,
   );
 
   const textTheme = TextTheme(
     displaySmall: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w500,
-      letterSpacing: -0.2,
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.4,
       color: AppTones.textPrimary,
       height: 1.2,
     ),
+    headlineSmall: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+      letterSpacing: -0.2,
+      color: AppTones.textPrimary,
+      height: 1.3,
+    ),
     titleLarge: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
       letterSpacing: -0.1,
       color: AppTones.textPrimary,
       height: 1.3,
@@ -45,21 +71,20 @@ ThemeData buildAppTheme() {
     titleMedium: TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w500,
-      letterSpacing: 0.4,
-      color: AppTones.textSecondary,
-      height: 1.3,
+      letterSpacing: 0.2,
+      color: AppTones.textPrimary,
     ),
     bodyLarge: TextStyle(
-      fontSize: 15,
+      fontSize: 14.5,
       fontWeight: FontWeight.w400,
       color: AppTones.textPrimary,
-      height: 1.45,
+      height: 1.5,
     ),
     bodyMedium: TextStyle(
       fontSize: 13.5,
       fontWeight: FontWeight.w400,
-      color: AppTones.textPrimary,
-      height: 1.45,
+      color: AppTones.textSecondary,
+      height: 1.5,
     ),
     bodySmall: TextStyle(
       fontSize: 12.5,
@@ -76,13 +101,13 @@ ThemeData buildAppTheme() {
     labelMedium: TextStyle(
       fontSize: 11.5,
       fontWeight: FontWeight.w500,
-      letterSpacing: 0.6,
-      color: AppTones.textSecondary,
+      letterSpacing: 1.2,
+      color: AppTones.textMuted,
     ),
     labelSmall: TextStyle(
       fontSize: 10.5,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 1.0,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 1.4,
       color: AppTones.textMuted,
     ),
   );
@@ -91,63 +116,63 @@ ThemeData buildAppTheme() {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: scheme,
-    scaffoldBackgroundColor: AppTones.ink,
-    canvasColor: AppTones.ink,
-    dividerColor: AppTones.hairline,
+    scaffoldBackgroundColor: AppTones.bg0,
+    canvasColor: AppTones.bg0,
+    dividerColor: AppTones.line,
     textTheme: textTheme,
     splashFactory: NoSplash.splashFactory,
     highlightColor: Colors.transparent,
     sliderTheme: SliderThemeData(
       activeTrackColor: AppTones.accent,
-      inactiveTrackColor: AppTones.hairline,
+      inactiveTrackColor: AppTones.bg4,
       thumbColor: AppTones.textPrimary,
-      overlayColor: AppTones.accent.withOpacity(0.08),
-      trackHeight: 2.0,
+      overlayColor: AppTones.accentGlow,
+      trackHeight: 3.0,
       thumbShape: const RoundSliderThumbShape(
-        enabledThumbRadius: 6,
+        enabledThumbRadius: 7,
         elevation: 0,
         pressedElevation: 0,
       ),
-      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+      overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
       showValueIndicator: ShowValueIndicator.never,
     ),
     switchTheme: SwitchThemeData(
       trackOutlineColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
             ? AppTones.accent
-            : AppTones.hairline,
+            : AppTones.line,
       ),
       thumbColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
             ? AppTones.accent
-            : AppTones.textMuted,
+            : AppTones.textSecondary,
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
-            ? AppTones.accentSoft
-            : AppTones.surface,
+            ? AppTones.accent.withOpacity(0.18)
+            : AppTones.bg3,
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: const WidgetStatePropertyAll(AppTones.textPrimary),
-        foregroundColor: const WidgetStatePropertyAll(AppTones.ink),
+        backgroundColor: const WidgetStatePropertyAll(AppTones.accent),
+        foregroundColor: const WidgetStatePropertyAll(AppTones.bg0),
         elevation: const WidgetStatePropertyAll(0),
         padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
         shape: WidgetStatePropertyAll(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
         textStyle: const WidgetStatePropertyAll(
-          TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500, letterSpacing: 0.1),
+          TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, letterSpacing: 0.1),
         ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: ButtonStyle(
         foregroundColor: const WidgetStatePropertyAll(AppTones.textSecondary),
-        overlayColor: WidgetStatePropertyAll(AppTones.hairline.withOpacity(0.6)),
+        overlayColor: WidgetStatePropertyAll(AppTones.bg3.withOpacity(0.6)),
         padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         ),
@@ -156,31 +181,33 @@ ThemeData buildAppTheme() {
     inputDecorationTheme: InputDecorationTheme(
       isDense: true,
       filled: true,
-      fillColor: AppTones.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      fillColor: AppTones.bg2,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       hintStyle: const TextStyle(color: AppTones.textMuted, fontSize: 13.5),
       labelStyle: const TextStyle(color: AppTones.textSecondary, fontSize: 12.5),
       floatingLabelBehavior: FloatingLabelBehavior.never,
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: AppTones.hairline, width: 1),
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: AppTones.line, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: AppTones.accent, width: 1),
       ),
     ),
-    snackBarTheme: const SnackBarThemeData(
-      backgroundColor: AppTones.surfaceRaised,
-      contentTextStyle: TextStyle(color: AppTones.textPrimary, fontSize: 13.5),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppTones.bg3,
+      contentTextStyle: const TextStyle(
+          color: AppTones.textPrimary, fontSize: 13.5),
       behavior: SnackBarBehavior.floating,
       elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: AppTones.surface,
+      backgroundColor: AppTones.bg2,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
   );
 }
