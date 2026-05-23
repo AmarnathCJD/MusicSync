@@ -211,7 +211,7 @@ class _Hero extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   color:
-                      running ? Colors.black.withOpacity(0.35) : AppTones.accent,
+                      running ? Colors.black.withValues(alpha: 0.35) : AppTones.accent,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -260,7 +260,7 @@ class _SourceToggle extends StatelessWidget {
       opacity: disabled ? 0.55 : 1.0,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.30),
+          color: Colors.black.withValues(alpha: 0.30),
           borderRadius: BorderRadius.circular(10),
         ),
         padding: const EdgeInsets.all(3),
@@ -301,7 +301,7 @@ class _SourceToggle extends StatelessWidget {
           duration: const Duration(milliseconds: 160),
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: active ? Colors.white.withOpacity(0.10) : Colors.transparent,
+            color: active ? Colors.white.withValues(alpha: 0.10) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -312,7 +312,7 @@ class _SourceToggle extends StatelessWidget {
                 size: 14,
                 color: active
                     ? Colors.white
-                    : Colors.white.withOpacity(0.55),
+                    : Colors.white.withValues(alpha: 0.55),
               ),
               const SizedBox(width: 6),
               Text(
@@ -323,7 +323,7 @@ class _SourceToggle extends StatelessWidget {
                   letterSpacing: 0.4,
                   color: active
                       ? Colors.white
-                      : Colors.white.withOpacity(0.6),
+                      : Colors.white.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -344,7 +344,7 @@ class _StatePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
+        color: Colors.black.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -360,7 +360,7 @@ class _StatePill extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: running
                   ? Colors.white
-                  : Colors.white.withOpacity(0.7),
+                  : Colors.white.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -442,7 +442,7 @@ class _AutoChip extends StatelessWidget {
               ],
             ),
             border: Border.all(
-              color: active ? AppTones.accent : Colors.white.withOpacity(0.12),
+              color: active ? AppTones.accent : Colors.white.withValues(alpha: 0.12),
               width: active ? 2.0 : 1.0,
             ),
           ),
@@ -479,12 +479,12 @@ class _HueChip extends StatelessWidget {
             shape: BoxShape.circle,
             color: color,
             border: Border.all(
-              color: active ? AppTones.accent : Colors.white.withOpacity(0.12),
+              color: active ? AppTones.accent : Colors.white.withValues(alpha: 0.12),
               width: active ? 2.0 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(active ? 0.55 : 0.30),
+                color: color.withValues(alpha: active ? 0.55 : 0.30),
                 blurRadius: active ? 10 : 6,
               ),
             ],

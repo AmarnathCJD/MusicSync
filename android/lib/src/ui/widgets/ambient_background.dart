@@ -31,8 +31,8 @@ class AmbientBackground extends StatelessWidget {
                 center: const Alignment(-0.7, -0.9),
                 radius: 1.1,
                 colors: [
-                  AppTones.bloom.withOpacity(0.55),
-                  AppTones.bloom.withOpacity(0.0),
+                  AppTones.bloom.withValues(alpha: 0.55),
+                  AppTones.bloom.withValues(alpha: 0.0),
                 ],
                 stops: const [0.0, 1.0],
               ),
@@ -46,7 +46,7 @@ class AmbientBackground extends StatelessWidget {
                 center: const Alignment(0.9, 1.0),
                 radius: 0.9,
                 colors: [
-                  Colors.black.withOpacity(0.35),
+                  Colors.black.withValues(alpha: 0.35),
                   Colors.transparent,
                 ],
               ),

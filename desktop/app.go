@@ -9,6 +9,7 @@ import (
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"musicsync/internal/audio"
+	"musicsync/internal/discover"
 	"musicsync/internal/sender"
 	"musicsync/internal/settings"
 	"musicsync/internal/strip"
@@ -215,6 +216,10 @@ func (a *App) TestConnection() error {
 
 func (a *App) GetMonitors() []video.MonitorInfo {
 	return video.ListMonitors()
+}
+
+func (a *App) DiscoverDevices() []discover.Device {
+	return discover.Find(a.ctx, 3*time.Second)
 }
 
 // ResetAudio replaces audio settings with defaults, preserves everything else,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../state/app_state.dart';
+import '../../wled/wled_discover.dart';
 import '../../wled/wled_http.dart';
 import '../theme.dart';
 import '../widgets/section_card.dart';
@@ -20,6 +21,34 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
   late TextEditingController _led;
   late TextEditingController _skipS;
   late TextEditingController _skipE;
+
+  bool _scanning = false;
+  List<DiscoveredWled> _found = const [];
+
+  Future<void> _scan() async {
+    setState(() {
+      _scanning = true;
+      _found = const [];
+    });
+    final results = await discoverWled();
+    if (!mounted) return;
+    setState(() {
+      _scanning = false;
+      _found = results;
+    });
+    if (results.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No WLED devices found'),
+      ));
+    }
+  }
+
+  void _useDiscovered(DiscoveredWled d) {
+    setState(() {
+      _ip.text = d.ip;
+      _found = const [];
+    });
+  }
 
   @override
   void initState() {
@@ -76,6 +105,13 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
           child: Column(
             children: [
               _Field(label: 'IP address', controller: _ip, hint: '192.168.x.x'),
+              const SizedBox(height: 10),
+              _ScanRow(
+                scanning: _scanning,
+                results: _found,
+                onScan: _scan,
+                onPick: _useDiscovered,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -208,7 +244,7 @@ class _Hero extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
+                    color: Colors.black.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Row(
@@ -233,7 +269,7 @@ class _Hero extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: online
                               ? Colors.white
-                              : Colors.white.withOpacity(0.7),
+                              : Colors.white.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -248,7 +284,7 @@ class _Hero extends StatelessWidget {
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
                 letterSpacing: -0.3,
-                color: Colors.white.withOpacity(online ? 0.95 : 0.55),
+                color: Colors.white.withValues(alpha: online ? 0.95 : 0.55),
               ),
             ),
             const SizedBox(height: 14),
@@ -284,7 +320,7 @@ class _Stat extends StatelessWidget {
             fontSize: 9.5,
             letterSpacing: 1.6,
             fontWeight: FontWeight.w700,
-            color: Colors.white.withOpacity(0.55),
+            color: Colors.white.withValues(alpha: 0.55),
           ),
         ),
         const SizedBox(height: 4),
@@ -342,6 +378,127 @@ class _Field extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ScanRow extends StatelessWidget {
+  final bool scanning;
+  final List<DiscoveredWled> results;
+  final VoidCallback onScan;
+  final ValueChanged<DiscoveredWled> onPick;
+
+  const _ScanRow({
+    required this.scanning,
+    required this.results,
+    required this.onScan,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: scanning ? null : onScan,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppTones.line),
+              color: AppTones.bg1,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (scanning)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppTones.accent,
+                    ),
+                  )
+                else
+                  const Icon(Icons.wifi_find_rounded,
+                      size: 16, color: AppTones.accent),
+                const SizedBox(width: 8),
+                Text(
+                  scanning ? 'Scanning…' : 'Scan network for WLED',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppTones.textPrimary,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (results.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          ...results.map((d) => _DiscoveredTile(d: d, onTap: () => onPick(d))),
+        ],
+      ],
+    );
+  }
+}
+
+class _DiscoveredTile extends StatelessWidget {
+  final DiscoveredWled d;
+  final VoidCallback onTap;
+  const _DiscoveredTile({required this.d, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: AppTones.bg2,
+          border: Border.all(color: AppTones.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTones.positive,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                d.name,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTones.textPrimary,
+                ),
+              ),
+            ),
+            Text(
+              d.ip,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTones.textSecondary,
+                fontFamily: 'monospace',
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -125,7 +125,7 @@ class LabeledSlider extends StatelessWidget {
               trackHeight: 6,
               thumbShape: const _GlowThumbShape(),
               overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
-              overlayColor: AppTones.accent.withOpacity(0.12),
+              overlayColor: AppTones.accent.withValues(alpha: 0.12),
               activeTrackColor: AppTones.accent,
               inactiveTrackColor: AppTones.bg3,
             ),
@@ -246,7 +246,7 @@ class _GlowThumbShape extends SliderComponentShape {
     final canvas = context.canvas;
     // Soft glow halo
     final halo = Paint()
-      ..color = AppTones.accent.withOpacity(0.18)
+      ..color = AppTones.accent.withValues(alpha: 0.18)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
     canvas.drawCircle(center, _haloRadius, halo);
     // Outer ring

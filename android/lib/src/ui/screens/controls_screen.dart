@@ -160,7 +160,7 @@ class _Hero extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.35),
+                      color: Colors.black.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -171,7 +171,7 @@ class _Hero extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                         color: on
                             ? Colors.white
-                            : Colors.white.withOpacity(0.7),
+                            : Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -182,7 +182,7 @@ class _Hero extends StatelessWidget {
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.35),
+                        color: Colors.black.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -190,7 +190,7 @@ class _Hero extends StatelessWidget {
                         size: 18,
                         color: on
                             ? Colors.white
-                            : Colors.white.withOpacity(0.6),
+                            : Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -203,7 +203,7 @@ class _Hero extends StatelessWidget {
                   fontSize: 28,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.5,
-                  color: Colors.white.withOpacity(on ? 0.95 : 0.5),
+                  color: Colors.white.withValues(alpha: on ? 0.95 : 0.5),
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -212,7 +212,7 @@ class _Hero extends StatelessWidget {
                 'Tap to change primary color',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withOpacity(0.55),
+                  color: Colors.white.withValues(alpha: 0.55),
                 ),
               ),
             ],

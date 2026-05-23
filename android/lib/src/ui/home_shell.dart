@@ -141,7 +141,7 @@ class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTones.bg2.withOpacity(0.8),
+        color: AppTones.bg2.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppTones.lineSoft),
       ),
@@ -204,7 +204,7 @@ class _IconActionState extends State<_IconAction> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: _hover ? AppTones.bg3 : AppTones.bg2.withOpacity(0.6),
+              color: _hover ? AppTones.bg3 : AppTones.bg2.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppTones.lineSoft),
             ),

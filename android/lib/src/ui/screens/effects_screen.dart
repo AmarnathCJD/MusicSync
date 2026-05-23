@@ -128,10 +128,10 @@ class _PresetTileState extends State<_PresetTile> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 7, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppTones.accent.withOpacity(0.15),
+                            color: AppTones.accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                                color: AppTones.accent.withOpacity(0.5)),
+                                color: AppTones.accent.withValues(alpha: 0.5)),
                           ),
                           child: const Text(
                             'ACTIVE',
@@ -201,7 +201,7 @@ class _SwatchStack extends StatelessWidget {
                   border: Border.all(color: AppTones.bg1, width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: colors[i].withOpacity(0.4),
+                      color: colors[i].withValues(alpha: 0.4),
                       blurRadius: 7,
                     ),
                   ],

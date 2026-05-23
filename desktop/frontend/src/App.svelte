@@ -56,6 +56,27 @@
     finally { setTimeout(() => suppressSave = false, 0); }
   }
 
+  let scanning = false;
+  let discovered = [];
+  async function scanDevices() {
+    scanning = true;
+    discovered = [];
+    try {
+      const r = await window.go.main.App.DiscoverDevices();
+      discovered = r || [];
+      if (!discovered.length) status = 'no WLED found';
+      setTimeout(() => { if (status === 'no WLED found') status = ''; }, 2200);
+    } catch (e) { status = 'scan failed'; }
+    finally { scanning = false; }
+  }
+  function pickDiscovered(d) {
+    if (!settings) return;
+    settings.wled_ip = d.ip;
+    discovered = [];
+    status = `set ip · ${d.ip}`;
+    setTimeout(() => { if (status === `set ip · ${d.ip}`) status = ''; }, 1800);
+  }
+
   let saveTimer = null;
   let suppressSave = false;
   function scheduleSave() {
@@ -262,9 +283,23 @@
             <span class="chap-no">CFG</span>
             <h2>Device</h2>
             <span class="dotted-rule"></span>
+            <button class="sm ghost" on:click={scanDevices} disabled={scanning}>
+              {scanning ? 'scanning…' : 'scan network'}
+            </button>
             <button class="sm ghost" on:click={resetAll}>reset everything</button>
             <button class="primary sm" on:click={testConnection}>Blink</button>
           </div>
+          {#if discovered.length}
+            <div class="discovered">
+              {#each discovered as d}
+                <button class="disc-row" on:click={() => pickDiscovered(d)}>
+                  <span class="disc-dot"></span>
+                  <span class="disc-name">{d.name}</span>
+                  <span class="disc-ip mono">{d.ip}</span>
+                </button>
+              {/each}
+            </div>
+          {/if}
           <div class="fields-grid">
             <label class="field"><span>IP</span><input type="text" bind:value={settings.wled_ip} /></label>
             <label class="field"><span>Port</span><input type="number" bind:value={settings.port} /></label>
@@ -813,6 +848,52 @@
     color: var(--ink);
     border-color: var(--ink);
   }
+
+  /* ----------------------- discovered devices ----------------------- */
+  .discovered {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 6px 0 14px;
+  }
+  .disc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+    text-align: left;
+  }
+  .disc-row:hover {
+    background: var(--paper-2);
+    border-color: var(--ink);
+  }
+  .disc-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--oxblood);
+    flex-shrink: 0;
+  }
+  .disc-name { flex: 1; }
+  .disc-ip {
+    font-size: 12px;
+    color: var(--ink-mid);
+  }
+  :global([data-theme="workshop"]) .disc-row {
+    background: var(--panel);
+    border-color: var(--panel-edge);
+    color: var(--ink);
+  }
+  :global([data-theme="workshop"]) .disc-row:hover {
+    background: var(--hover);
+    border-color: var(--panel-edge-2);
+  }
+  :global([data-theme="workshop"]) .disc-dot { background: var(--accent); }
 
   /* ----------------------- grids ----------------------- */
   .fields-grid {

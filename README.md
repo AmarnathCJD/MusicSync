@@ -90,6 +90,9 @@ Open the app, paste the WLED IP, set your LED count and you're done.
 
 - **Windows app** — close to system tray, auto-start on Windows startup,
   keep running in the background.
+- **macOS audio loopback** — Linux and Windows do loopback natively;
+  macOS still needs a virtual device (BlackHole or similar) until
+  CoreAudio gets a clean equivalent.
 
 ## License
 

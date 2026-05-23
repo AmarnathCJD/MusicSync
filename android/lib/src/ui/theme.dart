@@ -149,7 +149,7 @@ ThemeData buildAppTheme() {
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
-            ? AppTones.accent.withOpacity(0.18)
+            ? AppTones.accent.withValues(alpha: 0.18)
             : AppTones.bg3,
       ),
     ),
@@ -172,7 +172,7 @@ ThemeData buildAppTheme() {
     textButtonTheme: TextButtonThemeData(
       style: ButtonStyle(
         foregroundColor: const WidgetStatePropertyAll(AppTones.textSecondary),
-        overlayColor: WidgetStatePropertyAll(AppTones.bg3.withOpacity(0.6)),
+        overlayColor: WidgetStatePropertyAll(AppTones.bg3.withValues(alpha: 0.6)),
         padding: const WidgetStatePropertyAll(
           EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         ),
